@@ -11,8 +11,43 @@ config.Search
 config.Username
 
 
+import time
+
 import threading
 import asyncio
+
+import threading                                                                
+
+import random
+
+# def process(items, start, end):                                                 
+#     for item in items[start:end]:                                               
+#         try:                                                                    
+#             api.my_operation(item)                                              
+#         except Exception:                                                       
+#             print('error with item')                                            
+
+
+# def split_processing(items, num_splits=4):                                      
+#     split_size = len(items) // num_splits                                       
+#     threads = []                                                                
+#     for i in range(num_splits):                                                 
+#         # determine the indices of the list this thread will handle             
+#         start = i * split_size                                                  
+#         # special case on the last  chunk to account for uneven splits           
+#         end = None if i+1 == num_splits else (i+1) * split_size                 
+#         # create the thread                                                     
+#         threads.append(                                                         
+#             threading.Thread(target=process, args=(items, start, end)))         
+#         threads[-1].start() # start the thread we just created                  
+
+#     # wait for all threads to finish                                            
+#     for t in threads:                                                           
+#         t.join()                                                                
+
+
+
+# split_processing(items)
 
 # def launch_query(c):
 #     asyncio.set_event_loop(asyncio.new_event_loop())
@@ -104,46 +139,65 @@ def launch_query(c):
 
 def config_setup(usernames):
     for user in usernames:
-        print(user)
+        time.sleep(random.randint(1,10))
         c = twint.Config()
         c.Username = user
         c.Store_csv = True
         c.Output = 'files/' + user + '.csv'
         twint.run.Following(c)
 
+def username_generator(users):
+    '''
+    users: list
+    '''
+    for user in users:
+        yield user
+
+
+def user_follower_query(folder_path, thread_number):
+    '''
+    '''
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    print("thread {} starting".format(thread_number))
+    while True:
+        try:
+            
+            user = next(user_gen) #user gen is a global generator
+            print("Thread {}: Reading Followers for {}".format(thread_number, user))
+            time.sleep(random.randint(10,20))
+            c = twint.Config()
+            c.Username = user
+            c.Store_csv = True
+            c.Output = folder_path + "/" + user + ".csv"
+            c.Hide_output = True
+
+            twint.run.Following(c)
+        except StopIteration as error:
+            print("thread {} closing ...".format(thread_number))
+            break
+
 if __name__ == "__main__":
 
     # scraper = twint_scraper("hija_ako_id")
     # scraper.scrape_hashtags("#hijaako", since="2020-06-01", until="2020-07-12")
 
+    folder_path = "files"
     g = pd.read_csv("hijaako.csv")
     usernames = g["username"].unique()
-    usernames = usernames[:300]
+    usernames = usernames[3000:]
     username_split = []
-    threads = 3
-    print(len(usernames))
-    val = int(len(usernames) / threads)
-    start = 0;
-    end = val
-    for i in range(threads-1):
-        print(start, end)
-        username_split.append(usernames[start:end])
-        start += val
-        end += val
+    threads = 10
 
-    username_split.append(usernames[start:])
-
-
-
-    for i in username_split:
-        print(len(i))
+    user_gen = username_generator(usernames)
 
     thread_list = []
 
-    for thr in range(threads):
-        thread = threading.Thread(target=config_setup, args=(username_split[thr],),)
+    print("Initializing threads...")
+    for thr_num in range(threads):
+        thread = threading.Thread(target=user_follower_query, args=(folder_path, thr_num),)
         thread_list.append(thread)
-        thread_list[thr].start()
+        
+        thread_list[thr_num].start()
 
     for thread in thread_list:
         thread.join()
