@@ -73,7 +73,7 @@ networkx==2.4
 nltk==3.4.5
 normalise==0.1.8
 numexpr==2.7.1
-numpy==1.18.1
+numpy==1.22.0
 oauthlib==3.1.0
 opencv-python==4.3.0.36
 opt-einsum==3.2.0
